@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 #include <string>
+#include <vector>
 
 // Фабрика //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -198,9 +199,62 @@ class SomeObject : public Shape
 
 // Адаптер //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class Target { public: virtual void newFunc () = 0; };
+class Legacy { public: void oldFunc() { std::cout << "oldFunc()/n"; } };
 
+class Adapter : public Target
+{
+    Legacy * mp_old;
+    Adapter(Legacy * old ) : mp_old( old ){}
+    void newFunc() override { mp_old->oldFunc(); }
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Мост //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct Device { virtual void enable() = 0; };   // реализация
+struct TV : Device { void enable() override { /* ... */ } };
+
+struct Remote {                  // абстракция держит мост к реализации
+    Device* device;
+    Remote(Device* d) : device(d) {}
+    virtual void power() { device->enable(); }
+};  // Remote и Device развиваются независимо
+
+class BasePacket{ public: virtual void encode() = 0; };
+class APacket : public BasePacket { public: void encode() override { printf("apacket"); } };
+
+class PacketEncoder
+{
+    public:
+    BasePacket * mp_pack;
+    PacketEncoder( BasePacket * pack ) : mp_pack( pack ) {}
+    virtual void packetWork() { mp_pack->encode(); }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Компоновщик //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct Node { virtual int size() = 0; virtual ~Node() = default; };
+struct File : Node { int bytes; int size() override { return bytes; }; virtual ~File() = default; };
+
+struct Folder : Node {
+    std::vector<Node*> children;
+    int size() override {
+        int s = 0;
+        for (auto* c : children) s += c->size();  // одинаково для всех
+        return s;
+    }
+    ~Folder() override {
+        for (auto* c : children) {
+            delete c;
+        }
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
